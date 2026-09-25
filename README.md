@@ -18,3 +18,4 @@ El diseño del panel analítico desarrollado en Figma se divide en cuatro cuadra
 3. Histograma de volumen de transacciones por hora del día para identificar los momentos críticos de atención.
 4. Gráfico de dispersión del algoritmo para clasificar el rendimiento de los productos y listado de los Top 5 productos más vendidos.
    :)
+<img width="1600" height="814" alt="WhatsApp Image 2026-09-25 at 11 09 30" src="https://github.com/user-attachments/assets/de6a2d93-b7be-473e-b0a7-dd43ffe09fdf" />
