@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analítica de Cafetería</title>
+    <!-- Fuentes de Google -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Chart.js para los gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse para leer el archivo CSV (Base de Datos) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- Hoja de estilos -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="min-h-screen">
+
+        <!-- Header -->
+        <header class="sticky-header">
+            <div class="header-container">
+                <div class="header-logo-group">
+                    <div class="logo-icon">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M3 2h10v2H3V2zm1 3h8c0 3.314-1.343 6-4 6S4 8.314 4 5zm7 7H5v1h6v-1z" fill="white"/>
+                        </svg>
+                    </div>
+                    <h1 class="font-display">Analítica de Cafetería</h1>
+                </div>
+                <div class="header-controls">
+                    <!-- Filtro de Fecha Corregido -->
+                    <select id="dateRangeSelect" class="custom-select">
+                        <option value="all">Ene–Jun 2023 (Todo)</option>
+                        <option value="t1">Trimestre 1 (Ene - Mar)</option>
+                        <option value="t2">Trimestre 2 (Abr - Jun)</option>
+                    </select>
+                    <!-- Filtro de Sede -->
+                    <select id="locationSelect" class="custom-select">
+                        <option>Todas las sedes</option>
+                        <option>Lower Manhattan</option>
+                        <option>Hell's Kitchen</option>
+                        <option>Astoria</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-container">
+
+            <!-- KPI Row -->
+            <section class="kpi-grid">
+                <div class="kpi-card">
+                    <p class="kpi-label">Ingresos Totales</p>
+                    <p class="font-display kpi-value" id="kpiRevenue">Cargando...</p>
+                    <div class="kpi-trend-group">
+                        <span class="trend-badge positive">↑ +12.4%</span>
+                        <span class="kpi-sub">vs período anterior</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <p class="kpi-label">Total Transacciones</p>
+                    <p class="font-display kpi-value" id="kpiTransactions">Cargando...</p>
+                    <div class="kpi-trend-group">
+                        <span class="trend-badge positive">↑ +8.1%</span>
+                        <span class="kpi-sub">vs período anterior</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <p class="kpi-label">Cantidad Vendida</p>
+                    <p class="font-display kpi-value" id="kpiQty">Cargando...</p>
+                    <div class="kpi-trend-group">
+                        <span class="trend-badge positive">↑ +10.7%</span>
+                        <span class="kpi-sub">unidades</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <p class="kpi-label">Valor Promedio de Pedido</p>
+                    <p class="font-display kpi-value" id="kpiAov">Cargando...</p>
+                    <div class="kpi-trend-group">
+                        <span class="trend-badge negative">↓ -1.2%</span>
+                        <span class="kpi-sub">por transacción</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts Row 1 -->
+            <section class="charts-grid">
+                <!-- Category Bar Chart -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="font-display">Ventas por Categoría de Producto</h2>
+                        <p class="card-sub">Contribución de ingresos por categoría</p>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Monthly Line Chart -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="font-display">Tendencia Mensual de Ventas</h2>
+                        <p class="card-sub">Ingresos basados en registros</p>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts Row 2 -->
+            <section class="charts-grid">
+                <!-- Hourly Heatmap Chart -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="font-display">Ventas por Hora del Día</h2>
+                        <p class="card-sub">Volumen de transacciones — horas pico destacadas</p>
+                    </div>
+                    <div class="chart-wrapper hourly-wrapper">
+                        <canvas id="hourlyChart"></canvas>
+                    </div>
+                    <div class="heatmap-legend">
+                        <span class="kpi-sub">Bajo</span>
+                        <div class="legend-box" style="background-color: #EDD5B8;"></div>
+                        <div class="legend-box" style="background-color: #D9A87A;"></div>
+                        <div class="legend-box" style="background-color: #C17A45;"></div>
+                        <div class="legend-box" style="background-color: #8B5040;"></div>
+                        <div class="legend-box" style="background-color: #6B3A2A;"></div>
+                        <span class="kpi-sub">Alto</span>
+                    </div>
+                </div>
+
+                <!-- Scatter Plot Chart -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="font-display">Dispersión: Hora vs Valor de Venta</h2>
+                        <p class="card-sub">Relación entre la hora de compra y el monto total</p>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="scatterChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts Row 3: Top Products -->
+            <section class="charts-grid bottom-grid">
+                <!-- Top Products Table -->
+                <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header">
+                        <h2 class="font-display">Top 5 Productos Más Vendidos</h2>
+                        <p class="card-sub">Clasificados por unidades vendidas</p>
+                    </div>
+                    <div class="table-container">
+                        <table class="products-table">
+                            <thead>
+                                <tr>
+                                    <th class="th-num">#</th>
+                                    <th>Producto</th>
+                                    <th class="text-right">Unidades</th>
+                                    <th class="text-right">Ingresos</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topProductsBody">
+                                <!-- Datos inyectados dinámicamente desde el CSV -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Script para procesar la Base de Datos CSV y renderizar gráficos -->
+    <script>
+        let globalData = [];
+
+        // Leer el archivo CSV local
+        Papa.parse("Coffee Shop Sales.csv", {
+            download: true,
+            header: true,
+            dynamicTyping: true,
+            complete: function(results) {
+                globalData = results.data.filter(row => row.transaction_id);
+                initDashboard();
+            }
+        });
+
+        let categoryChartInstance = null;
+        let monthlyChartInstance = null;
+        let hourlyChartInstance = null;
+        let scatterChartInstance = null;
+
+        function initDashboard() {
+            setupEventListeners();
+            renderDashboard();
+        }
+
+        function setupEventListeners() {
+            // Eventos para filtros
+            document.getElementById('locationSelect').addEventListener('change', renderDashboard);
+            document.getElementById('dateRangeSelect').addEventListener('change', renderDashboard);
+        }
+
+        function renderDashboard() {
+            const selectedLocation = document.getElementById('locationSelect').value;
+            const selectedDate = document.getElementById('dateRangeSelect').value;
+
+            let filtered = globalData;
+            
+            // Aplicar Filtro de Sede
+            if (selectedLocation !== "Todas las sedes") {
+                filtered = filtered.filter(row => row.store_location === selectedLocation);
+            }
+
+            // Aplicar Filtro de Fecha
+            if (selectedDate === "t1") {
+                filtered = filtered.filter(row => {
+                    if (!row.transaction_date) return false;
+                    const mes = parseInt(String(row.transaction_date).split('/')[0]);
+                    return mes >= 1 && mes <= 3;
+                });
+            } else if (selectedDate === "t2") {
+                filtered = filtered.filter(row => {
+                    if (!row.transaction_date) return false;
+                    const mes = parseInt(String(row.transaction_date).split('/')[0]);
+                    return mes >= 4 && mes <= 6;
+                });
+            }
+
+            // 1. KPIs
+            const totalRevenue = filtered.reduce((acc, row) => acc + (row.transaction_qty * row.unit_price), 0);
+            const totalTransactions = new Set(filtered.map(row => row.transaction_id)).size;
+            const totalQty = filtered.reduce((acc, row) => acc + row.transaction_qty, 0);
+            const avgOrderValue = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+
+            document.getElementById('kpiRevenue').innerText = totalRevenue >= 1000 ? `$${(totalRevenue/1000).toFixed(1)}K` : `$${totalRevenue.toFixed(2)}`;
+            document.getElementById('kpiTransactions').innerText = totalTransactions >= 1000 ? `${(totalTransactions/1000).toFixed(0)}K` : totalTransactions;
+            document.getElementById('kpiQty').innerText = totalQty >= 1000 ? `${(totalQty/1000).toFixed(0)}K` : totalQty;
+            document.getElementById('kpiAov').innerText = `$${avgOrderValue.toFixed(2)}`;
+
+            // 2. Categorías
+            const catMap = {};
+            filtered.forEach(row => {
+                if (!row.product_category) return;
+                const rev = row.transaction_qty * row.unit_price;
+                catMap[row.product_category] = (catMap[row.product_category] || 0) + rev;
+            });
+            const sortedCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+            renderCategoryChart(sortedCats.map(i => i[0]), sortedCats.map(i => i[1]));
+
+            // 3. Mensual
+            const monthMap = {};
+            filtered.forEach(row => {
+                if (!row.transaction_date) return;
+                const parts = String(row.transaction_date).split('/');
+                if (parts.length >= 1) {
+                    const mNum = parseInt(parts[0]);
+                    const names = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                    if (names[mNum]) {
+                        monthMap[names[mNum]] = (monthMap[names[mNum]] || 0) + (row.transaction_qty * row.unit_price);
+                    }
+                }
+            });
+            const monthLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'];
+            const monthValues = monthLabels.map(m => monthMap[m] || 0);
+            renderMonthlyChart(monthLabels, monthValues);
+
+            // 4. Horas
+            const hourMap = {};
+            for(let i=6; i<=20; i++) hourMap[i] = 0;
+            filtered.forEach(row => {
+                if (!row.transaction_time) return;
+                const timeParts = String(row.transaction_time).split(':');
+                if (timeParts.length > 0) {
+                    const h = parseInt(timeParts[0]);
+                    if (!isNaN(h) && hourMap[h] !== undefined) {
+                        hourMap[h] += 1;
+                    }
+                }
+            });
+            const hourLabels = Object.keys(hourMap).map(h => {
+                const num = parseInt(h);
+                return num === 12 ? '12pm' : num > 12 ? `${num-12}pm` : `${num}am`;
+            });
+            renderHourlyChart(hourLabels, Object.values(hourMap));
+
+            // 5. Gráfico de Dispersión
+            renderScatterChart(filtered);
+
+            // 6. Top Productos
+            const prodMap = {};
+            filtered.forEach(row => {
+                if (!row.product_detail) return;
+                const key = row.product_detail + '||' + row.product_category;
+                if (!prodMap[key]) {
+                    prodMap[key] = { name: row.product_detail, category: row.product_category, units: 0, revenue: 0 };
+                }
+                prodMap[key].units += row.transaction_qty;
+                prodMap[key].revenue += row.transaction_qty * row.unit_price;
+            });
+            const topProds = Object.values(prodMap).sort((a, b) => b.units - a.units).slice(0, 5);
+            renderTopProductsTable(topProds);
+        }
+
+        function renderCategoryChart(labels, data) {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            if (categoryChartInstance) categoryChartInstance.destroy();
+            
+            const colors = ["#6B3A2A", "#8B5040", "#C17A45", "#D9A87A", "#D9A87A", "#D9A87A", "#D9A87A", "#D9A87A", "#D9A87A"];
+            categoryChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderRadius: 4,
+                        barThickness: 16
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            grid: { color: '#E4DDD6', borderDash: [3, 3] },
+                            ticks: { font: { family: 'DM Mono', size: 11 }, color: '#7C6B60', callback: v => '$' + (v/1000) + 'K' }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { font: { family: 'Inter', size: 12 }, color: '#4A2C1E' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderMonthlyChart(labels, data) {
+            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            if (monthlyChartInstance) monthlyChartInstance.destroy();
+
+            monthlyChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        borderColor: '#6B3A2A',
+                        backgroundColor: '#C17A45',
+                        borderWidth: 2.5,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#C17A45',
+                        pointBorderColor: '#6B3A2A',
+                        pointBorderWidth: 2,
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            grid: { color: '#E4DDD6', borderDash: [3, 3] },
+                            ticks: { font: { family: 'Inter', size: 12 }, color: '#7C6B60' }
+                        },
+                        y: {
+                            grid: { color: '#E4DDD6', borderDash: [3, 3] },
+                            ticks: { font: { family: 'DM Mono', size: 11 }, color: '#7C6B60', callback: v => '$' + (v/1000) + 'K' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderHourlyChart(labels, data) {
+            const ctx = document.getElementById('hourlyChart').getContext('2d');
+            if (hourlyChartInstance) hourlyChartInstance.destroy();
+
+            const maxVal = Math.max(...data, 1);
+            const colors = data.map(val => {
+                const t = val / maxVal;
+                if (t > 0.85) return "#6B3A2A";
+                if (t > 0.65) return "#8B5040";
+                if (t > 0.45) return "#C17A45";
+                if (t > 0.25) return "#D9A87A";
+                return "#EDD5B8";
+            });
+
+            hourlyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderRadius: 3,
+                        barThickness: 20
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: 'DM Mono', size: 10 }, color: '#7C6B60' }
+                        },
+                        y: { display: false }
+                    }
+                }
+            });
+        }
+
+        function renderScatterChart(filteredData) {
+            const ctx = document.getElementById('scatterChart').getContext('2d');
+            if (scatterChartInstance) scatterChartInstance.destroy();
+
+            const points = [];
+            for (let i = 0; i < filteredData.length; i += Math.max(1, Math.floor(filteredData.length / 400))) {
+                const row = filteredData[i];
+                if (row.transaction_time && row.unit_price && row.transaction_qty) {
+                    const timeParts = String(row.transaction_time).split(':');
+                    const hour = parseInt(timeParts[0]);
+                    const total = row.transaction_qty * row.unit_price;
+                    if (!isNaN(hour)) {
+                        points.push({ x: hour, y: total });
+                    }
+                }
+            }
+
+            scatterChartInstance = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Transacciones',
+                        data: points,
+                        backgroundColor: '#C17A45',
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Hora del día (24h)', color: '#7C6B60', font: { family: 'Inter', size: 11 } },
+                            grid: { color: '#E4DDD6', borderDash: [3, 3] },
+                            ticks: { font: { family: 'DM Mono', size: 10 }, color: '#7C6B60' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Monto ($)', color: '#7C6B60', font: { family: 'Inter', size: 11 } },
+                            grid: { color: '#E4DDD6', borderDash: [3, 3] },
+                            ticks: { font: { family: 'DM Mono', size: 10 }, color: '#7C6B60', callback: v => '$' + v }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTopProductsTable(prods) {
+            const tbody = document.getElementById('topProductsBody');
+            tbody.innerHTML = '';
+            prods.forEach((p, i) => {
+                const tr = document.createElement('tr');
+                if (i === 0) tr.className = 'highlight-row';
+                tr.innerHTML = `
+                    <td class="td-num"><span class="font-mono-data ${i===0?'primary-text':'muted-text'}">${String(i+1).padStart(2, '0')}</span></td>
+                    <td>
+                        <p class="product-name ${i===0?'primary-text':''}">${p.name}</p>
+                        <p class="product-cat">${p.category}</p>
+                    </td>
+                    <td class="text-right font-mono-data">${p.units.toLocaleString()}</td>
+                    <td class="text-right font-mono-data accent-text">$${p.revenue.toLocaleString(undefined, {maximumFractionDigits:0})}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>
