@@ -384,6 +384,7 @@ select.custom-input {
 .data-table td.text-right {
   padding-right: 0;
   padding-left: 0.75rem;
+  text-align: right;
 }
 
 .highlight-row {
