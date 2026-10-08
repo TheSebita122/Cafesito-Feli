@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Panel de ventas y análisis predictivo de Cafesito Feli">
+  <title>Cafesito Feli</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-container">
+      <a class="brand" href="#dashboard" aria-label="Cafesito Feli, ir al panel">
+        <span class="logo-icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 2h10v2H3V2zm1 3h8c0 3.314-1.343 6-4 6S4 8.314 4 5zm7 7H5v1h6v-1z" fill="white"/>
+          </svg>
+        </span>
+        <span class="font-display brand-name">Cafesito Feli</span>
+      </a>
+      <nav class="main-nav" aria-label="Secciones">
+        <a href="#dashboard" data-view="dashboard">Panel</a>
+        <a href="#predictor" data-view="predictor">Predictor de demanda</a>
+        <a href="#segments" data-view="segments">Segmentos</a>
+        <a href="#combos" data-view="combos">Combos</a>
+      </nav>
+      <div class="header-controls" id="dashboardFilters">
+        <label class="visually-hidden" for="quarterSelect">Período</label>
+        <select id="quarterSelect" class="custom-select">
+          <option value="">Ene–Jun 2023 (todo)</option>
+          <option value="1">Trimestre 1 (ene–mar)</option>
+          <option value="2">Trimestre 2 (abr–jun)</option>
+        </select>
+        <label class="visually-hidden" for="storeSelect">Sede</label>
+        <select id="storeSelect" class="custom-select">
+          <option value="">Todas las sedes</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container" id="main">
+    <section id="view-dashboard" class="view" aria-labelledby="title-dashboard">
+      <h2 id="title-dashboard" class="visually-hidden">Panel de ventas</h2>
+      <div class="kpi-grid" id="kpiGrid">
+        <article class="kpi-card">
+          <p class="kpi-label">Ingresos totales</p>
+          <p class="font-display kpi-value" id="kpiRevenue">…</p>
+          <p class="kpi-trend-group"><span class="trend-badge" id="trendRevenue" hidden></span><span class="kpi-sub" id="subRevenue">en el período</span></p>
+        </article>
+        <article class="kpi-card">
+          <p class="kpi-label">Transacciones</p>
+          <p class="font-display kpi-value" id="kpiTransactions">…</p>
+          <p class="kpi-trend-group"><span class="trend-badge" id="trendTransactions" hidden></span><span class="kpi-sub" id="subTransactions">líneas de venta</span></p>
+        </article>
+        <article class="kpi-card">
+          <p class="kpi-label">Cantidad vendida</p>
+          <p class="font-display kpi-value" id="kpiUnits">…</p>
+          <p class="kpi-trend-group"><span class="trend-badge" id="trendUnits" hidden></span><span class="kpi-sub" id="subUnits">unidades</span></p>
+        </article>
+        <article class="kpi-card">
+          <p class="kpi-label">Valor promedio por venta</p>
+          <p class="font-display kpi-value" id="kpiTicket">…</p>
+          <p class="kpi-trend-group"><span class="trend-badge" id="trendTicket" hidden></span><span class="kpi-sub" id="subTicket">por transacción</span></p>
+        </article>
+      </div>
+      <p class="notice" id="kpiError" role="alert" hidden></p>
+
+      <div class="charts-grid">
+        <article class="card">
+          <header class="card-header">
+            <h3 class="font-display">Ventas por categoría de producto</h3>
+            <p class="card-sub">Ingresos acumulados por categoría</p>
+          </header>
+          <div class="chart-wrapper"><canvas id="categoryChart" role="img" aria-label="Gráfico de barras de ingresos por categoría"></canvas></div>
+          <p class="notice" id="categoryError" role="alert" hidden></p>
+        </article>
+        <article class="card">
+          <header class="card-header">
+            <h3 class="font-display">Tendencia mensual de ventas</h3>
+            <p class="card-sub">Ingresos por mes</p>
+          </header>
+          <div class="chart-wrapper"><canvas id="monthlyChart" role="img" aria-label="Gráfico de líneas de ingresos mensuales"></canvas></div>
+          <p class="notice" id="monthlyError" role="alert" hidden></p>
+        </article>
+      </div>
+
+      <div class="charts-grid">
+        <article class="card">
+          <header class="card-header">
+            <h3 class="font-display">Transacciones por hora del día</h3>
+            <p class="card-sub">Horas pico destacadas en tonos más oscuros</p>
+          </header>
+          <div class="chart-wrapper hourly-wrapper"><canvas id="hourlyChart" role="img" aria-label="Gráfico de barras de transacciones por hora"></canvas></div>
+          <div class="heatmap-legend">
+            <span class="kpi-sub">Bajo</span>
+            <span class="legend-box heat-1"></span>
+            <span class="legend-box heat-2"></span>
+            <span class="legend-box heat-3"></span>
+            <span class="legend-box heat-4"></span>
+            <span class="legend-box heat-5"></span>
+            <span class="kpi-sub">Alto</span>
+          </div>
+          <p class="notice" id="hourlyError" role="alert" hidden></p>
+        </article>
+        <article class="card">
+          <header class="card-header">
+            <h3 class="font-display">Segmentos de productos</h3>
+            <p class="card-sub">Unidades vendidas frente a ingresos por producto</p>
+          </header>
+          <div class="chart-wrapper"><canvas id="segmentScatter" role="img" aria-label="Gráfico de dispersión de productos por segmento"></canvas></div>
+          <p class="notice" id="segmentScatterError" role="alert" hidden></p>
+        </article>
+      </div>
+
+      <article class="card">
+        <header class="card-header">
+          <h3 class="font-display">Top 5 productos más vendidos</h3>
+          <p class="card-sub">Clasificados por unidades vendidas</p>
+        </header>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="th-num" scope="col">#</th>
+                <th scope="col">Producto</th>
+                <th class="text-right" scope="col">Unidades</th>
+                <th class="text-right" scope="col">Ingresos</th>
+              </tr>
+            </thead>
+            <tbody id="topProductsBody"></tbody>
+          </table>
+        </div>
+        <p class="notice" id="topProductsError" role="alert" hidden></p>
+      </article>
+    </section>
+
+    <section id="view-predictor" class="view" aria-labelledby="title-predictor" hidden>
+      <header class="view-header">
+        <h2 id="title-predictor" class="font-display">Predictor de demanda</h2>
+        <p class="view-lead">Indica sede, día, mes y hora para saber si se espera una demanda alta o baja y planificar el personal del turno.</p>
+      </header>
+      <div class="two-columns">
+        <form class="card form-card" id="predictorForm" novalidate>
+          <div class="form-group">
+            <label for="predStore">Sede</label>
+            <select id="predStore" class="custom-input" required></select>
+          </div>
+          <div class="form-group">
+            <label for="predWeekday">Día de la semana</label>
+            <select id="predWeekday" class="custom-input" required></select>
+          </div>
+          <div class="form-group">
+            <label for="predMonth">Mes</label>
+            <select id="predMonth" class="custom-input" required></select>
+          </div>
+          <div class="form-group">
+            <label for="predHour">Hora</label>
+            <select id="predHour" class="custom-input" required></select>
+          </div>
+          <button type="submit" class="btn-primary" id="predictBtn">Predecir demanda</button>
+          <p class="notice" id="predictorError" role="alert" hidden></p>
+        </form>
+        <article class="card result-card" id="predictorResult" aria-live="polite">
+          <p class="result-placeholder">El resultado aparecerá aquí.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="view-segments" class="view" aria-labelledby="title-segments" hidden>
+      <header class="view-header">
+        <h2 id="title-segments" class="font-display">Segmentos de productos</h2>
+        <p class="view-lead">El menú se agrupó automáticamente según unidades vendidas, ingresos y precio para decidir qué priorizar.</p>
+      </header>
+      <p class="notice" id="segmentsError" role="alert" hidden></p>
+      <div class="segment-grid" id="segmentProfiles"></div>
+      <div class="two-columns">
+        <article class="card">
+          <header class="card-header">
+            <h3 class="font-display">Productos por segmento</h3>
+            <div class="inline-filter">
+              <label for="segmentFilter">Mostrar</label>
+              <select id="segmentFilter" class="custom-input">
+                <option value="">Todos los segmentos</option>
+              </select>
+            </div>
+          </header>
+          <div class="table-container tall">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Producto</th>
+                  <th scope="col">Segmento</th>
+                  <th class="text-right" scope="col">Unidades</th>
+                  <th class="text-right" scope="col">Ingresos</th>
+                </tr>
+              </thead>
+              <tbody id="segmentProducts"></tbody>
+            </table>
+          </div>
+        </article>
+        <form class="card form-card" id="classifyForm" novalidate>
+          <header class="card-header">
+            <h3 class="font-display">Clasifica un producto</h3>
+            <p class="card-sub">Ingresa sus cifras de seis meses para ver a qué segmento pertenece.</p>
+          </header>
+          <div class="form-group">
+            <label for="classUnits">Unidades vendidas</label>
+            <input id="classUnits" class="custom-input" type="number" min="0" step="1" inputmode="numeric" required>
+          </div>
+          <div class="form-group">
+            <label for="classRevenue">Ingresos (US$)</label>
+            <input id="classRevenue" class="custom-input" type="number" min="0" step="0.01" inputmode="decimal" required>
+          </div>
+          <div class="form-group">
+            <label for="classPrice">Precio unitario promedio (US$)</label>
+            <input id="classPrice" class="custom-input" type="number" min="0.01" step="0.01" inputmode="decimal" required>
+          </div>
+          <button type="submit" class="btn-primary">Clasificar</button>
+          <p class="notice" id="classifyError" role="alert" hidden></p>
+          <div class="classify-result" id="classifyResult" aria-live="polite"></div>
+        </form>
+      </div>
+    </section>
+
+    <section id="view-combos" class="view" aria-labelledby="title-combos" hidden>
+      <header class="view-header">
+        <h2 id="title-combos" class="font-display">Combos y venta cruzada</h2>
+        <p class="view-lead">Reglas encontradas en las compras reales: qué productos se llevan juntos y cuánto más de lo esperable.</p>
+      </header>
+      <article class="card">
+        <div class="inline-filter">
+          <label for="comboProduct">Producto que lleva el cliente</label>
+          <select id="comboProduct" class="custom-input">
+            <option value="">Todas las reglas</option>
+          </select>
+        </div>
+        <p class="notice" id="combosError" role="alert" hidden></p>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th scope="col">Si compra…</th>
+                <th scope="col">…también compra</th>
+                <th class="text-right" scope="col">Soporte</th>
+                <th class="text-right" scope="col">Confianza</th>
+                <th class="text-right" scope="col">Lift</th>
+                <th scope="col">Lectura</th>
+              </tr>
+            </thead>
+            <tbody id="rulesBody"></tbody>
+          </table>
+        </div>
+        <p class="card-sub rules-empty" id="rulesEmpty" hidden>No hay reglas para este producto: no se compra con otros de forma destacable.</p>
+      </article>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Cafesito Feli · Proyecto de Minería de Datos · Datos de ventas enero–junio 2023</p>
+  </footer>
+</body>
+</html>
