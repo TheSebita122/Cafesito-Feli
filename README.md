@@ -1,21 +1,124 @@
-Cafesito Feli - Mineria de Datos
+# Cafesito Feli
 
-Problema Central
-La gerencia de la cadena de cafeterías enfrenta una "ineficacia operativa y desaprovechamiento de oportunidades de venta cruzada", ya que opera bajo un modelo de toma de decisiones intuitivo en lugar de basarse en datos. Específicamente:
-1. Desbalance en la gestión de turnos y personal: No se cuenta con una distribución óptima de los empleados por hora, lo que genera cuellos de botella e insatisfacción del cliente durante las horas pico de alta demanda, y costos innecesarios en horas valle.
-2. Desconocimiento del rendimiento real del portafolio: Con más de 80 artículos en el menú, la empresa no tiene segmentados cuáles son los productos que realmente impulsan los ingresos (productos estrella frente a productos de baja rotación), lo que dificulta la creación de estrategias comerciales efectivas como combos o promociones cruzadas.
+Panel de ventas y servicios de minería de datos para una cadena de tres cafeterías en Nueva York. Proyecto de **Minería de Datos (IEI-067)**, Santo Tomás, construido sobre el proceso CRISP-DM.
 
-Solución Propuesta 
-1. Segmentación de Productos: Agrupar el inventario en clústeres basados en su volumen de ventas, ingresos generados y precio unitario para redefinir el menú y priorizar stock.
-2. Análisis Operativo y Temporal: Identificar patrones por hora y categoría para automatizar la asignación de personal y potenciar el ticket promedio mediante campañas dirigidas.
+La aplicación entrega, en una sola interfaz y sin conocimientos técnicos:
 
-Arquitectura del Dashboard (Prototipo Visual)
+- **Panel**: ingresos, transacciones, unidades y ticket promedio, con variación real frente al trimestre anterior, filtrable por sede y período.
+- **Predictor de demanda** (Árbol de Decisión): dada una sede, día, mes y hora, indica si se espera demanda alta o baja para planificar turnos.
+- **Segmentos de productos** (K-Means): agrupa el menú en Estrella, Complemento y Premium de nicho, y clasifica productos nuevos.
+- **Combos** (Apriori): reglas de venta cruzada con soporte, confianza y lift.
 
-El diseño del panel analítico desarrollado en Figma se divide en cuatro cuadrantes estratégicos para la toma de decisiones gerenciales:
+## Arquitectura
 
-1. En la Cabecera se muestran los ingresos totales, transacciones totales, cantidad vendida y el valor promedio por pedido.
-2. Gráfico de barras horizontales de ingresos por categoría (liderado por Café y Té) y tendencia mensual de venta.  
-3. Histograma de volumen de transacciones por hora del día para identificar los momentos críticos de atención.
-4. Gráfico de dispersión del algoritmo para clasificar el rendimiento de los productos y listado de los Top 5 productos más vendidos.
-   :)
-<img width="1600" height="814" alt="WhatsApp Image 2026-09-25 at 11 09 30" src="https://github.com/user-attachments/assets/de6a2d93-b7be-473e-b0a7-dd43ffe09fdf" />
+```mermaid
+flowchart LR
+    Browser["Frontend<br/>HTML + CSS + JS"] -->|JSON /api| API["API FastAPI"]
+    API --> DB[("SQLite<br/>data/cafesito.db")]
+    API --> Models["Artefactos ML<br/>models/*.joblib, *.json"]
+    CSV["data/raw/coffee_shop_sales.csv"] -->|cafesito seed| DB
+    DB -->|cafesito train| Models
+```
+
+- La base SQLite es un artefacto derivado del CSV: `seed` la reconstruye en segundos, por lo que el despliegue no depende de un disco persistente.
+- Los modelos se entrenan desde la base (`train`) y se guardan con `joblib`/JSON. La API los carga al iniciar y responde `503` con un mensaje amable si aún no existen.
+- El frontend lo sirve la misma API: un solo despliegue, sin CORS.
+
+## Estructura
+
+```
+src/cafesito/
+  api/        app, routers, esquemas y manejo de errores
+  db/         modelos SQLAlchemy, sesión, consultas analíticas y seed
+  ml/         dataset, demanda (árbol), segmentación (K-Means), asociación (Apriori), artefactos
+  web/        frontend estático (index.html, css/, js/)
+  cli.py      comandos seed, train, bootstrap y serve
+tests/        unit/ e integration/
+data/raw/     dataset original
+models/       artefactos entrenados (ignorados por git)
+```
+
+## Puesta en marcha
+
+Requiere Python 3.11 o superior.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
+
+En Windows, activa el entorno con `.venv\Scripts\activate`.
+
+```bash
+python -m cafesito bootstrap
+python -m cafesito serve
+```
+
+`bootstrap` carga el CSV en SQLite y entrena los modelos solo si faltan. Luego abre <http://127.0.0.1:8000>. La documentación interactiva de la API está en <http://127.0.0.1:8000/api/docs>.
+
+| Comando | Qué hace |
+|---|---|
+| `python -m cafesito seed` | Reconstruye la base desde el CSV |
+| `python -m cafesito train` | Entrena y guarda los tres modelos |
+| `python -m cafesito bootstrap` | `seed` y `train` solo si faltan |
+| `python -m cafesito serve` | Levanta la API y el frontend |
+
+La configuración se toma de variables de entorno con prefijo `CAFESITO_` (ver `.env.example`).
+
+## API
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/health` | Estado de la base y los modelos |
+| GET | `/api/stores` | Sedes |
+| GET | `/api/kpis` | Indicadores y variación (`store_id`, `quarter`) |
+| GET | `/api/sales/by-category` · `/monthly` · `/hourly` | Series para los gráficos |
+| GET | `/api/products/top` | Productos más vendidos (`limit`) |
+| GET | `/api/predictions/demand/options` | Opciones válidas del predictor |
+| POST | `/api/predictions/demand` | Predicción de demanda alta o baja |
+| GET | `/api/segments` | Segmentos y productos asignados |
+| POST | `/api/segments/classify` | Segmento de un producto nuevo |
+| GET | `/api/product-types` | Tipos de producto |
+| GET | `/api/recommendations` | Reglas de asociación (`product_type`) |
+
+Los errores siguen el formato `{"error": {"code": "...", "message": "..."}}` con mensajes en español y nunca exponen trazas de Python.
+
+## Resultados de los modelos
+
+Se reproducen con `python -m cafesito train` y quedan en `models/metrics.json`.
+
+| Modelo | Métrica | Resultado |
+|---|---|---|
+| Árbol de Decisión (`max_depth=5`) | Accuracy en prueba | ≈ 77 %, frente a 51,5 % del baseline |
+| K-Means (K=3) | Coeficiente de silueta | 0,579 |
+| Apriori | Reglas encontradas | 8, de las cuales 6 con lift > 1,2 |
+
+## Calidad
+
+```bash
+ruff check .
+ruff format --check .
+mypy
+pytest
+```
+
+- `pytest` exige al menos 85 % de cobertura (actualmente ≈ 98 %).
+- El código no contiene comentarios; `tests/test_no_comments.py` lo hace cumplir.
+- El CI (`.github/workflows/ci.yml`) ejecuta lint, formato, tipos, pruebas y una construcción de la imagen Docker con prueba de humo.
+- `pre-commit install` activa los mismos chequeos en cada commit.
+
+## Despliegue
+
+Se incluye un `Dockerfile` que prepara base y modelos durante la construcción, y un `render.yaml` para Render.
+
+```bash
+docker build -t cafesito-feli .
+docker run -p 8000:8000 cafesito-feli
+```
+
+Luego abre <http://127.0.0.1:8000>.
+
+## Datos
+
+Dataset *Coffee Shop Sales* de Maven Analytics (Kaggle): 149.116 líneas de venta entre el 1 de enero y el 30 de junio de 2023, en 3 sedes y 80 productos.
