@@ -1,0 +1,66 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cafesito-feli"
+version = "1.0.0"
+description = "Analytics dashboard and machine learning API for the Cafesito Feli coffee shop chain."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy>=2.0",
+    "pandas>=2.2",
+    "scikit-learn>=1.5",
+    "mlxtend>=0.23",
+    "joblib>=1.4",
+    "pydantic-settings>=2.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "httpx2",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "pandas-stubs",
+    "pre-commit>=3.8",
+]
+
+[project.scripts]
+cafesito = "cafesito.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cafesito"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RET", "PT", "PD", "NPY", "ERA"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PD901"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["src"]
+
+[[tool.mypy.overrides]]
+module = ["mlxtend.*", "sklearn.*", "joblib.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers --cov=cafesito --cov-report=term-missing --cov-fail-under=85"
+filterwarnings = ["error::DeprecationWarning:cafesito.*"]
+
+[tool.coverage.run]
+branch = true
