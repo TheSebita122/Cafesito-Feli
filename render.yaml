@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: cafesito-feli
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: CAFESITO_HOST
+        value: 0.0.0.0
+      - key: CAFESITO_LOG_LEVEL
+        value: INFO
